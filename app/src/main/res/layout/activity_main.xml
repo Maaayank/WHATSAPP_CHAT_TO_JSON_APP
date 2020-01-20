@@ -33,27 +33,12 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/textView">
 
-
-<!--        <EditText-->
-<!--                android:id="@+id/person1"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:hint="Refer Person 1 as  ? "/>-->
-
-
-<!--        <EditText-->
-<!--                android:id="@+id/person2"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:hint="Refer Person 2 as  ? "-->
-<!--                android:layout_marginTop="20dp"-->
-<!--        />-->
-
         <TextView
                 android:id="@+id/filename"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="50dp"
+                android:fontFamily="casual"
                 android:textSize="15dp"
                 android:layout_marginHorizontal="20dp"
         />
@@ -68,15 +53,36 @@
                 android:backgroundTint="#72FAC3"
         />
 
-        <Button android:id="@+id/convert"
+        <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="50dp"
+                android:orientation="horizontal"
                 android:layout_marginTop="40dp"
-                android:enabled="false"
-                android:background="#F0E794"
-                android:backgroundTint="#F0DF5B"
-                android:text="Convert"/>
+        >
+
+            <Button android:id="@+id/convert"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:layout_margin="20dp"
+                    android:background="#F0E794"
+                    android:backgroundTint="#F0DF5B"
+                    android:text="Convert"/>
+
+            <Button android:id="@+id/share"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:layout_margin="20dp"
+                    android:background="#76FF03"
+                    android:backgroundTint="#8FEB3A"
+                    android:text="share"/>
+
+
+        </LinearLayout>
+
 
     </LinearLayout>
 

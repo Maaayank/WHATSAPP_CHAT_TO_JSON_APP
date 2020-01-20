@@ -29,19 +29,20 @@ import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity() {
 
-
-//    data class conversationModel( var sender : String? = null , var message : String? = null)
-
     val TAG = "fileerror"
     val filename : TextView by lazy {findViewById<TextView>(R.id.filename)}
     val findFile : Button by lazy { findViewById<Button>(R.id.selectfile) }
     val convert : Button by lazy { findViewById<Button>(R.id.convert) }
+    val share : Button by lazy { findViewById<Button>(R.id.share) }
     var root : String? = null
+    var lines : ArrayList<HashMap<String,String>> = ArrayList()
+    val chatee  = mutableSetOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        var content : Uri? = null
         when {
             intent?.action == Intent.ACTION_SEND  || intent?.action == Intent.ACTION_SEND_MULTIPLE ->{
 
@@ -62,37 +63,48 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-            if( checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-                var permission : Array<String> = Array(1,{android.Manifest.permission.WRITE_EXTERNAL_STORAGE})
-                requestPermissions(permission,100);
-            }
-        }
+//        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+//            if( checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+//                var permission : Array<String> = Array(1,{android.Manifest.permission.WRITE_EXTERNAL_STORAGE})
+//                requestPermissions(permission,100);
+//            }
+//        }
 
         findFile.setOnClickListener( View.OnClickListener {
 
             val intent : Intent = Intent().setType("text/plain").setAction(Intent.ACTION_GET_CONTENT)
             startActivityForResult(Intent.createChooser(intent,"Select Whatsapp Chat TXT file"), 123)
-        })
 
+        })
 
         convert.setOnClickListener( View.OnClickListener {
-            //todo something
+           content =  convertTextObjectModel(lines)
+            if(content != null){
+                share.isEnabled = true
+            }else{
+                share.isEnabled = false
+            }
+        })
+
+        share.setOnClickListener( View.OnClickListener {
+            if(content != null) {
+                shareFile(content!!);
+            }
         })
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        when(requestCode){
-            100 -> {
-                if(grantResults.size > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED){
-                    Toast.makeText(this,"Storage permission is required to store data",Toast.LENGTH_LONG).show()
-                    finishAffinity()
-                }
-            }
-        }
-    }
+//    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+//
+//        when(requestCode){
+//            100 -> {
+//                if(grantResults.size > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED){
+//                    Toast.makeText(this,"Storage permission is required to store data",Toast.LENGTH_LONG).show()
+//                    finishAffinity()
+//                }
+//            }
+//        }
+//    }
 
     override fun onActivityResult(requestCode:Int, resultCode:Int, data:Intent?){
         super.onActivityResult(requestCode, resultCode, data)
@@ -108,12 +120,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             filename.setText(fname)
+            lines = ArrayList()
             readTextFile(selectedfile_uri)
         }
     }
 
-    fun convertTextObjectModel(lines : ArrayList<HashMap<String,String>>){
+    fun convertTextObjectModel(lines : ArrayList<HashMap<String,String>>) : Uri?{
         val gson : Gson = GsonBuilder().setPrettyPrinting().create()
+        var content : Uri? = null
         var jsonStr : String = gson.toJson(lines)
         var file : String = filename.text.toString()
         root = (this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)!!.absolutePath)
@@ -138,19 +152,25 @@ class MainActivity : AppCompatActivity() {
             out.write(jsonStr)
             out.close()
             Toast.makeText(this,"file saved at " + this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)!!.absolutePath, Toast.LENGTH_LONG).show()
-            val content : Uri = getUriForFile(this,"com.example.fileprovider",f)
+            content  = getUriForFile(this,"com.example.fileprovider",f)
 
-            val intent = ShareCompat.IntentBuilder.from(this)
+        }catch (e:Exception){
+            Log.d(TAG,e.message)
+        }
+
+        return  content
+    }
+
+    fun shareFile(content : Uri){
+
+        val intent = ShareCompat.IntentBuilder.from(this)
                 .setStream(content)
                 .setType("*/*")
                 .intent
                 .setAction(Intent.ACTION_SEND)
                 .setDataAndType(content,"*/*")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(intent);
-        }catch (e:Exception){
-            Log.d(TAG,e.message)
-        }
+        startActivity(intent);
     }
 
     fun readTextFile(uri : Uri?) {
@@ -163,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         var msg : String = ""
 
         val pattern = Regex("[\\d]{1,2}/[\\d]{1,2}/[\\d]{2}, [\\d]{1,2}:[\\d]{1,2} ")
-        var lines : ArrayList<HashMap<String,String>> = ArrayList()
+
         try {
             val inputStream : InputStreamReader = InputStreamReader(uri?.let { getContentResolver().openInputStream(it) },"UTF-8")
             val reader : BufferedReader =  BufferedReader(inputStream)
@@ -176,7 +196,7 @@ class MainActivity : AppCompatActivity() {
                         time = line!!.substring(line!!.indexOf(",") + 1, line!!.indexOf("-") - 1)
                         sender = line!!.substring(line!!.indexOf("-") + 1, line!!.indexOf(":", line!!.indexOf("-")))
                         msg = line!!.substring(line!!.indexOf(":", line!!.indexOf("-")) + 2)
-
+                        chatee.add(sender)
                         if (prev_sender == sender && prev_time == time) {
                             val str: String? = lines.get(lines.lastIndex).get("message")
                             lines.get(lines.lastIndex).put("message", str + "\n" + msg)
@@ -199,8 +219,8 @@ class MainActivity : AppCompatActivity() {
                     continue
                 }
             }
-            convertTextObjectModel(lines)
             reader.close()
+            convert.isEnabled = true
 
         } catch (e : Exception){
             Log.d(TAG,e.message )
